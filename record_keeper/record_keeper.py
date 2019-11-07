@@ -4,6 +4,8 @@ from . import utils as c_f
 import collections
 import matplotlib.pyplot as plt
 import numpy as np
+import glob
+import os
 
 
 class RecordKeeper:
@@ -92,8 +94,8 @@ class PicklerAndCSVer:
             c_f.write_dict_of_lists_to_csv(v, base_filename+".csv")
 
     def load_records(self, num_records_to_load=None):
-        for k, _ in self.records.items():
-            filename = "%s/%s.pkl"%(self.folder,k)
+        for filename in list(glob.glob('%s/*.pkl'%self.folder)):
+            k = os.path.splitext(filename.split('/')[-1])[0]
             self.records[k] = c_f.load_pkl(filename)
             if num_records_to_load is not None:
                 for zzz, _ in self.records[k].items():
