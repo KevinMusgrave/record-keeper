@@ -29,7 +29,7 @@ tensorboard_writer = SummaryWriter(log_dir=your_tensorboard_folder)
 record_keeper = record_keeper_package.RecordKeeper(tensorboard_writer, pickler_and_csver, ["record_these"])
 
 # Then during training:
-recorder.update_records(your_dict_of_objects, current_iteration)
+record_keeper.update_records(your_dict_of_objects, current_iteration)
 
 ```
 
