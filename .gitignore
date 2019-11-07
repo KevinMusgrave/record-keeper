@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.nfs*
+build/
+dist/
+record_keeper.egg-info/
