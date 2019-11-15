@@ -6,7 +6,7 @@ pip install record_keeper
 ```
 
 Easily add loggable information when you write a new function. First, create a list that contains the names of the attributes you want to record ("self.record_these" in the example below).
-```
+```python
 class YourNewLossFunction:
   def __init__(self, **kwargs):
     self.avg_embedding_norm = 0
@@ -20,7 +20,7 @@ class YourNewLossFunction:
 ```
 
 Then tell RecordKeeper the name of the list to read. RecordKeeper will then log and save all the attributes described in the list.
-```
+```python
 from torch.utils.tensorboard import SummaryWriter
 import record_keeper as record_keeper_package
 
