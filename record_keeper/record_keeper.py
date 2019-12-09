@@ -1,8 +1,11 @@
 #! /usr/bin/env python3
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from . import utils as c_f
 import collections
-import matplotlib.pyplot as plt
+from cycler import cycler
 import numpy as np
 import glob
 import os
@@ -71,6 +74,18 @@ class RecordKeeper:
         for sublist in numpified:
             plt.plot(np.arange(numpified.shape[1]), sublist)
         return fig
+
+    def add_embedding_plot(self, embeddings, labels, tag, global_iteration):
+    	# The pytorch tensorboard function "add_embedding" doesn't seem to work
+    	# So this will have to do for now
+        label_set = np.unique(labels)
+        num_classes = len(label_set)
+        fig = plt.figure()
+        plt.gca().set_prop_cycle(cycler("color", [plt.cm.nipy_spectral(i) for i in np.linspace(0, 0.9, num_classes)]))
+        for i in range(num_classes):
+            idx = labels == label_set[i]
+            plt.plot(embeddings[idx, 0], embeddings[idx, 1], ".", markersize=1)
+        self.tensorboard_writer.add_figure(tag, fig, global_iteration)
 
     def get_record(self, group_name):
         return self.pickler_and_csver.records[group_name]
