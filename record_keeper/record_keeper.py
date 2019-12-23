@@ -61,7 +61,7 @@ class RecordKeeper:
         if self.pickler_and_csver is not None:
             for group_name, dict_of_lists in self.pickler_and_csver.records.items():
                 for series_name, v in dict_of_lists.items():
-                    if isinstance(v[0], list):
+                    if len(v) > 0 and isinstance(v[0], list):
                         tag_name = '%s/%s' % (group_name, series_name)
                         figure = self.multi_line_plot(v)
                         self.tensorboard_writer.add_figure(tag_name, figure, global_iteration)
