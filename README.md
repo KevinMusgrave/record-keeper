@@ -10,7 +10,7 @@ When running machine-learning experiments, having more logged data is usually be
 
 ## The Solution:
 
-Use RecordKeeper, and easily add loggable information when you write a new class. The example below is taken from the [pytorch-metric-learning](https://github.com/KevinMusgrave/pytorch-metric-learning/blob/master/pytorch-metric-learning/losses/contrastive_loss.py) library. 
+Use RecordKeeper, and easily add loggable information when you write a new class. The example below is taken from the [pytorch-metric-learning](https://github.com/KevinMusgrave/pytorch-metric-learning/blob/master/pytorch_metric_learning/losses/contrastive_loss.py) library. 
 
 First, create a list that contains the names of the attributes you want to record (```self.record_these``` in the example below).
 ```python
