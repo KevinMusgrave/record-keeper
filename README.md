@@ -1,8 +1,8 @@
-# record_keeper
+# record-keeper
 
 ## Installation
 ```
-pip install record_keeper
+pip install record-keeper
 ```
 
 ## The Problem:
@@ -10,7 +10,7 @@ When running machine-learning experiments, having more logged data is usually be
 
 ## The Solution:
 
-Use RecordKeeper, and easily add loggable information when you write a new class. The example below is taken from the [pytorch_metric_learning](https://github.com/KevinMusgrave/pytorch_metric_learning/blob/master/pytorch_metric_learning/losses/contrastive_loss.py) library. 
+Use RecordKeeper, and easily add loggable information when you write a new class. The example below is taken from the [pytorch-metric-learning](https://github.com/KevinMusgrave/pytorch-metric-learning/blob/master/pytorch-metric-learning/losses/contrastive_loss.py) library. 
 
 First, create a list that contains the names of the attributes you want to record (```self.record_these``` in the example below).
 ```python
@@ -42,8 +42,8 @@ record_keeper.update_records(your_loss_dictionary, current_iteration)
 
 Now the attributes described in ```record_these```, (specifically, ```num_non_zero_pos_pairs``` and ```num_non_zero_neg_pairs```) can be viewed on Tensorboard.
 
-![nonzero_pairs_example](https://github.com/KevinMusgrave/powerful_benchmarker/blob/master/readme_imgs/nonzero_pairs_example.png)
+![nonzero_pairs_example](https://github.com/KevinMusgrave/powerful-benchmarker/blob/master/readme_imgs/nonzero_pairs_example.png)
 
 These data series are also saved in pickle and CSV format. If you only want to use Tensorboard, then pass in only a SummaryWriter, and vice versa.
 
-The dictionary that you pass into ```record_keeper.update_records``` can contain any number of objects, and for each one, RecordKeeper will check if the object has a "record_these" attribute. As long as you're making your dictionaries programmatically, it's possible to add large amounts of loggable data without clogging up your training code. See [pytorch_metric_learning](https://github.com/KevinMusgrave/pytorch_metric_learning/) and [powerful_benchmarker](https://github.com/KevinMusgrave/powerful_benchmarker/) to see RecordKeeper in action.  
+The dictionary that you pass into ```record_keeper.update_records``` can contain any number of objects, and for each one, RecordKeeper will check if the object has a "record_these" attribute. As long as you're making your dictionaries programmatically, it's possible to add large amounts of loggable data without clogging up your training code. See [pytorch-metric-learning](https://github.com/KevinMusgrave/pytorch-metric-learning/) and [powerful-benchmarker](https://github.com/KevinMusgrave/powerful-benchmarker/) to see RecordKeeper in action.  
