@@ -95,6 +95,7 @@ class PicklerAndCSVer:
     def __init__(self, folder):
         self.records = collections.defaultdict(lambda: collections.defaultdict(list))
         self.folder = folder
+        c_f.makedir_if_not_there(self.folder)
 
     def append(self, group_name, series_name, input_val):
         if c_f.is_list_and_has_more_than_one_element(input_val):

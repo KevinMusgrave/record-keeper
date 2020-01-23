@@ -1,6 +1,7 @@
 import collections
 import pickle
 import csv
+import os, errno
 
 def save_pkl(obj, filename, protocol=None):
     # https://stackoverflow.com/a/19201448
@@ -61,3 +62,10 @@ def try_getting_dataparallel_module(input_obj):
         return input_obj.module
     except BaseException:
         return input_obj
+
+def makedir_if_not_there(dir_name):
+    try:
+        os.makedirs(dir_name)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
