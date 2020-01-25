@@ -105,12 +105,12 @@ class PicklerAndCSVer:
 
     def save_records(self):
         for k, v in self.records.items():
-            base_filename = "%s/%s" % (self.folder, k)
+            base_filename = os.path.join(self.folder, k)
             c_f.save_pkl(v, base_filename+".pkl")
             c_f.write_dict_of_lists_to_csv(v, base_filename+".csv")
 
     def load_records(self, num_records_to_load=None):
-        for filename in list(glob.glob('%s/*.pkl'%self.folder)):
+        for filename in list(glob.glob(os.path.join(self.folder,"*.pkl"))):
             k = os.path.splitext(filename.split('/')[-1])[0]
             self.records[k] = c_f.load_pkl(filename)
             if num_records_to_load is not None:
