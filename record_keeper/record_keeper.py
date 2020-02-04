@@ -25,23 +25,33 @@ class RecordKeeper:
         if self.pickler_and_csver is not None:
             self.pickler_and_csver.append(group_name, series_name, value)
 
-    def update_records(self, record_these, global_iteration, custom_attr_func=None, input_group_name_for_non_objects=None):
+    def update_records(self, record_these, global_iteration, custom_attr_func=None, input_group_name_for_non_objects=None, recursive_types=None):
         for name_in_dict, input_obj in record_these.items():
-
             if input_group_name_for_non_objects is not None:
                 group_name = input_group_name_for_non_objects
                 self.append_data(group_name, name_in_dict, input_obj, global_iteration)
             else:
                 the_obj = c_f.try_getting_dataparallel_module(input_obj)
                 attr_list = self.get_attr_list_for_record_keeper(the_obj)
+                name = self.get_record_name(name_in_dict, the_obj) 
                 for k in attr_list:
-                    v = getattr(the_obj, k)
-                    name = self.get_record_name(name_in_dict, the_obj)
+                    v = getattr(the_obj, k)                    
                     self.append_data(name, k, v, global_iteration)
                 if custom_attr_func is not None:
                     for k, v in custom_attr_func(the_obj).items():
-                        name = self.get_record_name(name_in_dict, the_obj)
                         self.append_data(name, k, v, global_iteration)
+                if recursive_types is not None:
+                    try:
+                        for attr_name, attr in vars(input_obj).items():
+                            next_record_these = None
+                            if isinstance(attr, dict):
+                                next_record_these = {"%s_%s"%(name, k): v for k, v in attr.items()}
+                            elif any(isinstance(attr, rt) for rt in recursive_types):
+                                next_record_these = {"%s_%s"%(name, attr_name): attr}
+                            if next_record_these:
+                                self.update_records(next_record_these, global_iteration, custom_attr_func, input_group_name_for_non_objects, recursive_types)
+                    except:
+                        pass
 
 
     def get_attr_list_for_record_keeper(self, input_obj):
@@ -76,8 +86,8 @@ class RecordKeeper:
         return fig
 
     def add_embedding_plot(self, embeddings, labels, tag, global_iteration):
-    	# The pytorch tensorboard function "add_embedding" doesn't seem to work
-    	# So this will have to do for now
+        # The pytorch tensorboard function "add_embedding" doesn't seem to work
+        # So this will have to do for now
         label_set = np.unique(labels)
         num_classes = len(label_set)
         fig = plt.figure()
