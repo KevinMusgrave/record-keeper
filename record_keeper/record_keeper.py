@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from . import utils as c_f
+from .db_utils import DBManager
 import collections
 from cycler import cycler
 import numpy as np
@@ -102,22 +103,40 @@ class RecordKeeper:
 
 
 class PicklerAndCSVer:
-    def __init__(self, folder):
-        self.records = collections.defaultdict(lambda: collections.defaultdict(list))
+    def __init__(self, folder, db_path=None, experiment_name=None, is_new_experiment=True):
+        self.records = self.get_empty_nested_dict()
+        self.records_temp = self.get_empty_nested_dict()
         self.folder = folder
         c_f.makedir_if_not_there(self.folder)
+        self.db_path = db_path
+        self.experiment_name = experiment_name
+        self.db_manager = None
+        if self.db_path:
+            assert self.experiment_name is not None
+            self.db_manager = DBManager(self.db_path)
+            if is_new_experiment: 
+                self.db_manager.new_experiment(experiment_name)
+
+    def get_empty_nested_dict(self):
+        return collections.defaultdict(lambda: collections.defaultdict(list))
 
     def append(self, group_name, series_name, input_val):
         if c_f.is_list_and_has_more_than_one_element(input_val):
-            self.records[group_name][series_name].append(c_f.convert_to_list(input_val))
+            convert_func = c_f.convert_to_list
         else:
-            self.records[group_name][series_name].append(c_f.convert_to_scalar(input_val))
+            convert_func = c_f.convert_to_scalar
+        for r in [self.records, self.records_temp]:
+            r[group_name][series_name].append(convert_func(input_val))
 
     def save_records(self):
         for k, v in self.records.items():
             base_filename = os.path.join(self.folder, k)
             c_f.save_pkl(v, base_filename+".pkl")
             c_f.write_dict_of_lists_to_csv(v, base_filename+".csv")
+        if self.db_manager is not None:
+            for k, v in self.records_temp.items():
+                self.db_manager.write(self.experiment_name, k, v)
+        self.records_temp = self.get_empty_nested_dict()
 
     def load_records(self, num_records_to_load=None):
         for filename in list(glob.glob(os.path.join(self.folder,"*.pkl"))):
