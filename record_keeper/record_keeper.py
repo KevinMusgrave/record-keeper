@@ -13,9 +13,9 @@ import os
 
 
 class RecordKeeper:
-    def __init__(self, tensorboard_writer=None, pickler_and_csver=None, attributes_to_search_for=None):
+    def __init__(self, tensorboard_writer=None, record_writer=None, attributes_to_search_for=None):
         self.tensorboard_writer = tensorboard_writer
-        self.pickler_and_csver = pickler_and_csver
+        self.record_writer = record_writer
         self.attributes_to_search_for = [] if attributes_to_search_for is None else attributes_to_search_for
 
     def append_data(self, group_name, series_name, value, iteration):
@@ -23,8 +23,8 @@ class RecordKeeper:
             tag_name = '%s/%s' % (group_name, series_name)
             if not c_f.is_list_and_has_more_than_one_element(value):
                 self.tensorboard_writer.add_scalar(tag_name, value, iteration)
-        if self.pickler_and_csver is not None:
-            self.pickler_and_csver.append(group_name, series_name, value)
+        if self.record_writer is not None:
+            self.record_writer.append(group_name, series_name, value)
 
     def update_records(self, record_these, global_iteration, custom_attr_func=None, input_group_name_for_non_objects=None, recursive_types=None):
         for name_in_dict, input_obj in record_these.items():
@@ -69,8 +69,8 @@ class RecordKeeper:
         return record_name
 
     def maybe_add_custom_figures_to_tensorboard(self, global_iteration):
-        if self.pickler_and_csver is not None:
-            for group_name, dict_of_lists in self.pickler_and_csver.records.items():
+        if self.record_writer is not None:
+            for group_name, dict_of_lists in self.record_writer.records.items():
                 for series_name, v in dict_of_lists.items():
                     if len(v) > 0 and isinstance(v[0], list):
                         tag_name = '%s/%s' % (group_name, series_name)
@@ -99,23 +99,35 @@ class RecordKeeper:
         self.tensorboard_writer.add_figure(tag, fig, global_iteration)
 
     def get_record(self, group_name):
-        return self.pickler_and_csver.records[group_name]
+        return self.record_writer.records[group_name]
+
+    def save_records(self):
+        self.record_writer.save_records()
+
+    def load_records(self, num_records_to_load=None):
+        self.record_writer.load_records(num_records_to_load)
+
+    def query(self, query, values=(), use_global_db=False):
+        return self.record_writer.query(query, values, use_global_db)
+
+    def table_exists(self, table_name, use_global_db=False):
+        return self.record_writer.table_exists(table_name, use_global_db)
 
 
-class PicklerAndCSVer:
-    def __init__(self, folder, db_path=None, experiment_name=None, is_new_experiment=True):
+class RecordWriter:
+    def __init__(self, folder, global_db_path=None, experiment_name=None, is_new_experiment=True):
         self.records = self.get_empty_nested_dict()
         self.records_temp = self.get_empty_nested_dict()
         self.folder = folder
         c_f.makedir_if_not_there(self.folder)
-        self.db_path = db_path
+        self.local_db = DBManager(os.path.join(self.folder, "logs.db"), is_global=False)
+        self.global_db = None
         self.experiment_name = experiment_name
-        self.db_manager = None
-        if self.db_path:
+        if global_db_path:
             assert self.experiment_name is not None
-            self.db_manager = DBManager(self.db_path)
+            self.global_db = DBManager(global_db_path, is_global=True)
             if is_new_experiment: 
-                self.db_manager.new_experiment(experiment_name)
+                self.global_db.new_experiment(self.experiment_name)
 
     def get_empty_nested_dict(self):
         return collections.defaultdict(lambda: collections.defaultdict(list))
@@ -133,9 +145,10 @@ class PicklerAndCSVer:
             base_filename = os.path.join(self.folder, k)
             c_f.save_pkl(v, base_filename+".pkl")
             c_f.write_dict_of_lists_to_csv(v, base_filename+".csv")
-        if self.db_manager is not None:
-            for k, v in self.records_temp.items():
-                self.db_manager.write(self.experiment_name, k, v)
+        for k, v in self.records_temp.items():
+            self.local_db.write(k, v)
+            if self.global_db is not None:
+                self.global_db.write(k, v, experiment_name=self.experiment_name)
         self.records_temp = self.get_empty_nested_dict()
 
     def load_records(self, num_records_to_load=None):
@@ -145,3 +158,13 @@ class PicklerAndCSVer:
             if num_records_to_load is not None:
                 for zzz, _ in self.records[k].items():
                     self.records[k][zzz] = self.records[k][zzz][:num_records_to_load]
+
+    def get_db(self, use_global_db):
+        return self.global_db if use_global_db else self.local_db 
+
+    def query(self, query, values=(), use_global_db=False):
+        return self.get_db(use_global_db).query(query, values)
+
+    def table_exists(self, table_name, use_global_db=False):
+        return self.get_db(use_global_db).table_exists(table_name)
+

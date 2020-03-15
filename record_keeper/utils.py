@@ -6,7 +6,7 @@ import os, errno
 def save_pkl(obj, filename, protocol=None):
     # https://stackoverflow.com/a/19201448
     if protocol is None:
-        protocol = pickle.HIGHEST_PROTOCOL
+        protocol = pickle.DEFAULT_PROTOCOL
     with open(filename, "wb") as f:
         pickle.dump(obj, f, protocol)
 
