@@ -104,9 +104,6 @@ class RecordKeeper:
     def save_records(self):
         self.record_writer.save_records()
 
-    def load_records(self, num_records_to_load=None):
-        self.record_writer.load_records(num_records_to_load)
-
     def query(self, query, values=(), use_global_db=False):
         return self.record_writer.query(query, values, use_global_db)
 
@@ -117,7 +114,6 @@ class RecordKeeper:
 class RecordWriter:
     def __init__(self, folder, global_db_path=None, experiment_name=None, is_new_experiment=True):
         self.records = self.get_empty_nested_dict()
-        self.records_temp = self.get_empty_nested_dict()
         self.folder = folder
         c_f.makedir_if_not_there(self.folder)
         self.local_db = DBManager(os.path.join(self.folder, "logs.db"), is_global=False)
@@ -130,34 +126,23 @@ class RecordWriter:
                 self.global_db.new_experiment(self.experiment_name)
 
     def get_empty_nested_dict(self):
-        return collections.defaultdict(lambda: collections.defaultdict(list))
+        return collections.defaultdict(lambda: collections.OrderedDict())
 
     def append(self, group_name, series_name, input_val):
+        curr_dict = self.records[group_name]
         if c_f.is_list_and_has_more_than_one_element(input_val):
-            convert_func = c_f.convert_to_list
+        	c_f.try_append_to_dict(curr_dict, series_name, c_f.convert_to_list(input_val))
         else:
-            convert_func = c_f.convert_to_scalar
-        for r in [self.records, self.records_temp]:
-            r[group_name][series_name].append(convert_func(input_val))
+        	c_f.try_append_to_dict(curr_dict, series_name, c_f.convert_to_scalar(input_val))
 
     def save_records(self):
         for k, v in self.records.items():
             base_filename = os.path.join(self.folder, k)
-            c_f.save_pkl(v, base_filename+".pkl")
-            c_f.write_dict_of_lists_to_csv(v, base_filename+".csv")
-        for k, v in self.records_temp.items():
+            c_f.write_dict_of_lists_to_csv(v, base_filename+".csv", append=True)
             self.local_db.write(k, v)
             if self.global_db is not None:
                 self.global_db.write(k, v, experiment_name=self.experiment_name)
-        self.records_temp = self.get_empty_nested_dict()
-
-    def load_records(self, num_records_to_load=None):
-        for filename in list(glob.glob(os.path.join(self.folder,"*.pkl"))):
-            k = os.path.splitext(filename.split('/')[-1])[0]
-            self.records[k] = c_f.load_pkl(filename)
-            if num_records_to_load is not None:
-                for zzz, _ in self.records[k].items():
-                    self.records[k][zzz] = self.records[k][zzz][:num_records_to_load]
+        self.records = self.get_empty_nested_dict()
 
     def get_db(self, use_global_db):
         return self.global_db if use_global_db else self.local_db 

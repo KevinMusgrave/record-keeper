@@ -16,11 +16,23 @@ def load_pkl(filename):
         return pickle.load(f)
 
 
-def write_dict_of_lists_to_csv(obj, filename):
+def write_dict_of_lists_to_csv(obj, filename, append=False):
+    write_header = True
+    open_as = "w"
+    if append:
+        open_as = "a"
+        if os.path.isfile(filename):
+            with open(filename, "r") as f:
+                reader = csv.reader(f)
+                header = next(reader)
+                if len(header) > 0 and header == list(obj.keys()):
+                    write_header = False
+
     # https://stackoverflow.com/a/23613603
-    with open(filename, "w") as outfile:
+    with open(filename, open_as) as outfile:
         writer = csv.writer(outfile)
-        writer.writerow(obj.keys())
+        if write_header:
+            writer.writerow(obj.keys())
         writer.writerows(zip(*obj.values()))
 
 
@@ -69,3 +81,9 @@ def makedir_if_not_there(dir_name):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+
+def try_append_to_dict(input_dict, key, value):
+    try:
+        input_dict[key].append(value)
+    except:
+        input_dict[key] = [value]

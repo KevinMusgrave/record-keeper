@@ -33,7 +33,7 @@ class DBManager:
         return output[0]["id"]
 
     def write(self, table_name, dict_of_lists, experiment_name=None):
-        column_names = sorted(list(dict_of_lists.keys()))
+        column_names = list(dict_of_lists.keys())
         column_values, column_types = [], []
 
         for x in column_names:
