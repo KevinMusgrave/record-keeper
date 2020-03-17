@@ -12,23 +12,19 @@ sqlite3.register_converter("json", convert_JSON_to_list)
 
 class DBManager:
     def __init__(self, db_path, is_global=False):
-        self.conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
-        self.conn.row_factory = sqlite3.Row
-        self.cursor = self.conn.cursor()
+        self.db_path = db_path
         self.is_global = is_global
         if self.is_global:
             self.create_experiment_ids_table()
 
     def create_experiment_ids_table(self):
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS experiment_ids (id integer primary key autoincrement, experiment_name text unique)")
-        self.conn.commit()
+        self.execute("CREATE TABLE IF NOT EXISTS experiment_ids (id integer primary key autoincrement, experiment_name text unique)")
 
     def new_experiment(self, experiment_name):
-        self.cursor.execute("INSERT INTO experiment_ids (experiment_name) values (?)", (experiment_name,))
+        self.execute("INSERT INTO experiment_ids (experiment_name) values (?)", (experiment_name,))
 
     def get_experiment_id(self, experiment_name):
-        self.cursor.execute("SELECT id FROM experiment_ids WHERE experiment_name=?", (experiment_name,))
-        output = self.cursor.fetchall()
+        output = self.execute("SELECT id FROM experiment_ids WHERE experiment_name=?", (experiment_name,), fetch=True)
         assert len(output) == 1
         return output[0]["id"]
 
@@ -59,16 +55,26 @@ class DBManager:
         prepared_statement_filler = "(%s)"%(("?, "*len(column_values))[:-2])
         column_values = [x for x in zip(*column_values)]
 
-        self.cursor.execute("CREATE TABLE IF NOT EXISTS %s (id integer primary key autoincrement, %s)"%(table_name, column_types))
-        self.cursor.executemany("INSERT INTO %s %s VALUES %s"%(table_name, column_tuple, prepared_statement_filler), column_values)
-        self.conn.commit()
+        self.execute("CREATE TABLE IF NOT EXISTS %s (id integer primary key autoincrement, %s)"%(table_name, column_types))
+        self.execute("INSERT INTO %s %s VALUES %s"%(table_name, column_tuple, prepared_statement_filler), column_values, many=True)
 
     def query(self, query, values=()):
-        self.cursor.execute(query, values)
-        return self.cursor.fetchall()
+        return self.execute(query, values, fetch=True)
 
     def table_exists(self, table_name):
-        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'"%table_name)
-        return len(self.cursor.fetchall()) == 1
+        matches = self.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'"%table_name, fetch=True)
+        return len(matches) == 1
 
+    def execute(self, query, values=(), many=False, fetch=False):
+        self.open()
+        self.cursor.executemany(query, values) if many else self.cursor.execute(query, values)
+        self.conn.commit()
+        output = self.cursor.fetchall() if fetch else None
+        self.conn.close()
+        return output
+
+    def open(self):
+        self.conn = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES, timeout=60)
+        self.conn.row_factory = sqlite3.Row
+        self.cursor = self.conn.cursor()
         
