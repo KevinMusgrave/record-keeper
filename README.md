@@ -30,9 +30,9 @@ from torch.utils.tensorboard import SummaryWriter
 import record_keeper as record_keeper_package
 from pytorch_metric_learning import losses
 
-pickler_and_csver = record_keeper_package.PicklerAndCSVer(your_folder_for_logs)
+record_writer = record_keeper_package.RecordWriter(your_folder_for_logs)
 tensorboard_writer = SummaryWriter(log_dir=your_tensorboard_folder)
-record_keeper = record_keeper_package.RecordKeeper(tensorboard_writer, pickler_and_csver, ["record_these"])
+record_keeper = record_keeper_package.RecordKeeper(tensorboard_writer, record_writer, ["record_these"])
 
 your_loss_dictionary = {"metric_loss": losses.ContrastiveLoss()}
 
@@ -44,6 +44,6 @@ Now the attributes described in ```record_these```, (specifically, ```num_non_ze
 
 ![nonzero_pairs_example](https://github.com/KevinMusgrave/powerful-benchmarker/blob/master/readme_imgs/nonzero_pairs_example.png)
 
-These data series are also saved in pickle and CSV format. If you only want to use Tensorboard, then pass in only a SummaryWriter, and vice versa.
+These data series are also saved in sqlite and CSV format. If you only want to use Tensorboard, then pass in only a SummaryWriter, and vice versa.
 
 The dictionary that you pass into ```record_keeper.update_records``` can contain any number of objects, and for each one, RecordKeeper will check if the object has a "record_these" attribute. As long as you're making your dictionaries programmatically, it's possible to add large amounts of loggable data without clogging up your training code. See [pytorch-metric-learning](https://github.com/KevinMusgrave/pytorch-metric-learning/) and [powerful-benchmarker](https://github.com/KevinMusgrave/powerful-benchmarker/) to see RecordKeeper in action.  
