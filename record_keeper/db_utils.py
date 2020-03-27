@@ -24,8 +24,12 @@ class DBManager:
 
     def new_experiment(self, experiment_name):
         if not self.experiment_name_has_records(experiment_name):
-            self.execute("DELETE FROM experiment_ids WHERE experiment_name=?", (experiment_name,))
+            self.delete_experiment(experiment_name)
         self.execute("INSERT INTO experiment_ids (experiment_name, has_records) values (?, ?)", (experiment_name, int(False)))
+
+
+    def delete_experiment(self, experiment_name):
+        self.execute("DELETE FROM experiment_ids WHERE experiment_name=?", (experiment_name,))
 
 
     def experiment_name_has_records(self, experiment_name):
