@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import datetime
 
 def adapt_list_to_JSON(lst):
     return json.dumps(lst).encode('utf8')
@@ -54,6 +55,8 @@ class DBManager:
             if isinstance(curr_value[0], list):
                 curr_type = "%s json"%x
                 column_names_list[i] += "_list"
+            elif isinstance(curr_value[0], datetime.datetime):
+                curr_type = "%s timestamp"%x
             else:
                 curr_type = "%s real"%x
             column_values.append(curr_value)

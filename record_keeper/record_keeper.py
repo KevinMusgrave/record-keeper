@@ -22,7 +22,10 @@ class RecordKeeper:
         if self.tensorboard_writer is not None:
             tag_name = '%s/%s' % (group_name, series_name)
             if not c_f.is_list_and_has_more_than_one_element(value):
-                self.tensorboard_writer.add_scalar(tag_name, value, iteration)
+                try:
+                    self.tensorboard_writer.add_scalar(tag_name, value, iteration)
+                except:
+                    pass
         if self.record_writer is not None:
             self.record_writer.append(group_name, series_name, value)
 
@@ -138,6 +141,8 @@ class RecordWriter:
     def save_records(self):
         for k, v in self.records.items():
             if len(v) > 0:
+                len_of_list = len(v[sorted(list(v.keys()))[0]]) # get random sub list
+                assert all(len(v[sub_key])==len_of_list for sub_key in v.keys()) # assert all lists are the same length
                 base_filename = os.path.join(self.folder, k)
                 c_f.write_dict_of_lists_to_csv(v, base_filename+".csv", append=True)
                 self.local_db.write(k, v)
