@@ -137,11 +137,12 @@ class RecordWriter:
 
     def save_records(self):
         for k, v in self.records.items():
-            base_filename = os.path.join(self.folder, k)
-            c_f.write_dict_of_lists_to_csv(v, base_filename+".csv", append=True)
-            self.local_db.write(k, v)
-            if self.global_db is not None:
-                self.global_db.write(k, v, experiment_name=self.experiment_name)
+            if len(v) > 0:
+                base_filename = os.path.join(self.folder, k)
+                c_f.write_dict_of_lists_to_csv(v, base_filename+".csv", append=True)
+                self.local_db.write(k, v)
+                if self.global_db is not None:
+                    self.global_db.write(k, v, experiment_name=self.experiment_name)
         self.records = self.get_empty_nested_dict()
 
     def get_db(self, use_global_db):
