@@ -39,30 +39,30 @@ def write_dict_of_lists_to_csv(obj, filename, append=False):
 def convert_to_scalar(v):
     try:
         return v.detach().item()  # pytorch
-    except:
+    except AttributeError:
         try:
             return v[0]  # list or numpy
-        except:
+        except (TypeError, IndexError):
             return v  # already a scalar
 
 
 def convert_to_list(v):
     try:
         return v.detach().tolist()  # pytorch
-    except:
+    except AttributeError:
         try:
             return list(v)  # list or numpy
-        except:
+        except TypeError:
             return [v]  # already a scalar
 
 
 def try_get_len(v):
     try:
         return len(v)  # most things
-    except:
+    except TypeError:
         try:
             return v.nelement()  # 0-d tensor
-        except:
+        except AttributeError:
             return 0  # not a list
 
 def is_list_and_has_more_than_one_element(input_val):
@@ -72,7 +72,7 @@ def is_list_and_has_more_than_one_element(input_val):
 def try_getting_dataparallel_module(input_obj):
     try:
         return input_obj.module
-    except BaseException:
+    except AttributeError:
         return input_obj
 
 def makedir_if_not_there(dir_name):
@@ -85,5 +85,5 @@ def makedir_if_not_there(dir_name):
 def try_append_to_dict(input_dict, key, value):
     try:
         input_dict[key].append(value)
-    except:
+    except KeyError:
         input_dict[key] = [value]

@@ -10,6 +10,7 @@ from cycler import cycler
 import numpy as np
 import glob
 import os
+import datetime
 
 
 class RecordKeeper:
@@ -22,10 +23,8 @@ class RecordKeeper:
         if self.tensorboard_writer is not None:
             tag_name = '%s/%s' % (group_name, series_name)
             if not c_f.is_list_and_has_more_than_one_element(value):
-                try:
+                if not isinstance(value, datetime.datetime):
                     self.tensorboard_writer.add_scalar(tag_name, value, iteration)
-                except:
-                    pass
         if self.record_writer is not None:
             self.record_writer.append(group_name, series_name, value)
 
@@ -45,17 +44,14 @@ class RecordKeeper:
                     for k, v in custom_attr_func(the_obj).items():
                         self.append_data(name, k, v, global_iteration)
                 if recursive_types is not None:
-                    try:
-                        for attr_name, attr in vars(input_obj).items():
-                            next_record_these = None
-                            if isinstance(attr, dict):
-                                next_record_these = {"%s_%s"%(name, k): v for k, v in attr.items()}
-                            elif any(isinstance(attr, rt) for rt in recursive_types):
-                                next_record_these = {"%s_%s"%(name, attr_name): attr}
-                            if next_record_these:
-                                self.update_records(next_record_these, global_iteration, custom_attr_func, input_group_name_for_non_objects, recursive_types)
-                    except:
-                        pass
+                    for attr_name, attr in vars(input_obj).items():
+                        next_record_these = None
+                        if isinstance(attr, dict):
+                            next_record_these = {"%s_%s"%(name, k): v for k, v in attr.items()}
+                        elif any(isinstance(attr, rt) for rt in recursive_types):
+                            next_record_these = {"%s_%s"%(name, attr_name): attr}
+                        if next_record_these:
+                            self.update_records(next_record_these, global_iteration, custom_attr_func, input_group_name_for_non_objects, recursive_types)
 
 
     def get_attr_list_for_record_keeper(self, input_obj):

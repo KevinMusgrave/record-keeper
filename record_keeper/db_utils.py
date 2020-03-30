@@ -34,11 +34,10 @@ class DBManager:
 
 
     def experiment_name_has_records(self, experiment_name):
-        try:
-            has_records = self.execute("SELECT has_records FROM experiment_ids WHERE experiment_name=?", (experiment_name, ), fetch=True)
+        has_records = self.execute("SELECT has_records FROM experiment_ids WHERE experiment_name=?", (experiment_name, ), fetch=True)
+        if len(has_records) > 0:
             return bool(has_records[0]["has_records"])
-        except:
-            return False
+        return False
 
 
     def get_experiment_id(self, experiment_name):
@@ -80,7 +79,7 @@ class DBManager:
 
         try:
             self.execute("INSERT INTO %s %s VALUES %s"%(table_name, column_tuple, prepared_statement_filler), column_values, many=True)
-        except:
+        except sqlite3.OperationalError:
             existing_column_names_list = [x['name'] for x in self.execute("PRAGMA table_info(%s)"%table_name, fetch=True)]
             for i, x in enumerate(column_names_list):
                 if x not in existing_column_names_list:

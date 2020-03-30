@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="record-keeper",
-    version="0.9.21",
+    version="0.9.22",
     author="Kevin Musgrave",
     author_email="tkm45@cornell.edu",
     description="Record experiment data easily",
