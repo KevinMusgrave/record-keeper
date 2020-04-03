@@ -44,14 +44,17 @@ class RecordKeeper:
                     for k, v in custom_attr_func(the_obj).items():
                         self.append_data(name, k, v, global_iteration)
                 if recursive_types is not None:
-                    for attr_name, attr in vars(input_obj).items():
-                        next_record_these = None
-                        if isinstance(attr, dict):
-                            next_record_these = {"%s_%s"%(name, k): v for k, v in attr.items()}
-                        elif any(isinstance(attr, rt) for rt in recursive_types):
-                            next_record_these = {"%s_%s"%(name, attr_name): attr}
-                        if next_record_these:
-                            self.update_records(next_record_these, global_iteration, custom_attr_func, input_group_name_for_non_objects, recursive_types)
+                    try:
+                        for attr_name, attr in vars(input_obj).items():
+                            next_record_these = None
+                            if isinstance(attr, dict):
+                                next_record_these = {"%s_%s"%(name, k): v for k, v in attr.items()}
+                            elif any(isinstance(attr, rt) for rt in recursive_types):
+                                next_record_these = {"%s_%s"%(name, attr_name): attr}
+                            if next_record_these:
+                                self.update_records(next_record_these, global_iteration, custom_attr_func, input_group_name_for_non_objects, recursive_types)
+                    except TypeError:
+                        pass
 
 
     def get_attr_list_for_record_keeper(self, input_obj):
@@ -111,9 +114,10 @@ class RecordKeeper:
 
 
 class RecordWriter:
-    def __init__(self, folder, global_db_path=None, experiment_name=None, is_new_experiment=True):
+    def __init__(self, folder, global_db_path=None, experiment_name=None, is_new_experiment=True, save_lists=False):
         self.records = self.get_empty_nested_dict()
         self.folder = folder
+        self.save_lists = save_lists
         c_f.makedir_if_not_there(self.folder)
         self.local_db = DBManager(os.path.join(self.folder, "logs.db"), is_global=False)
         self.global_db = None
@@ -139,12 +143,21 @@ class RecordWriter:
             if len(v) > 0:
                 len_of_list = len(v[sorted(list(v.keys()))[0]]) # get random sub list
                 assert all(len(v[sub_key])==len_of_list for sub_key in v.keys()) # assert all lists are the same length
+                if not self.save_lists: self.remove_lists(v)
                 base_filename = os.path.join(self.folder, k)
                 c_f.write_dict_of_lists_to_csv(v, base_filename+".csv", append=True)
                 self.local_db.write(k, v)
                 if self.global_db is not None:
                     self.global_db.write(k, v, experiment_name=self.experiment_name)
         self.records = self.get_empty_nested_dict()
+
+    def remove_lists(self, record):
+        remove_keys = []
+        for k, v in record.items():
+            if isinstance(v[0], list):
+                remove_keys.append(k)
+        for k in remove_keys:
+            record.pop(k, None)
 
     def get_db(self, use_global_db):
         return self.global_db if use_global_db else self.local_db 
