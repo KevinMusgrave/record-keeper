@@ -109,11 +109,11 @@ class RecordKeeper:
     def save_records(self):
         self.record_writer.save_records()
 
-    def query(self, query, values=(), use_global_db=False):
-        return self.record_writer.query(query, values, use_global_db)
+    def query(self, query, *args, **kwargs):
+        return self.record_writer.query(query, *args, **kwargs)
 
-    def table_exists(self, table_name, use_global_db=False):
-        return self.record_writer.table_exists(table_name, use_global_db)
+    def table_exists(self, table_name, *args, **kwargs):
+        return self.record_writer.table_exists(table_name, *args, **kwargs)
 
 
 class RecordWriter:
@@ -165,8 +165,13 @@ class RecordWriter:
     def get_db(self, use_global_db):
         return self.global_db if use_global_db else self.local_db 
 
-    def query(self, query, values=(), use_global_db=False):
-        return self.get_db(use_global_db).query(query, values)
+    def query(self, query, values=(), use_global_db=False, return_dict=False):
+        output = self.get_db(use_global_db).query(query, values)
+        if return_dict:
+            if len(output) > 0:
+                return {k:[row[k] for row in output] for k in output[0].keys()}
+            return {}
+        return output
 
     def table_exists(self, table_name, use_global_db=False):
         return self.get_db(use_global_db).table_exists(table_name)
