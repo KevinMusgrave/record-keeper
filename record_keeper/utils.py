@@ -1,4 +1,4 @@
-import collections
+from collections.abc import Sized
 import pickle
 import csv
 import os, errno
@@ -66,7 +66,7 @@ def try_get_len(v):
             return 0  # not a list
 
 def is_list_and_has_more_than_one_element(input_val):
-    return isinstance(input_val, collections.Sized) and try_get_len(input_val) > 1
+    return isinstance(input_val, Sized) and try_get_len(input_val) > 1
 
 
 def try_getting_dataparallel_module(input_obj):

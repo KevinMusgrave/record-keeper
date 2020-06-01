@@ -25,7 +25,7 @@ class RecordKeeper:
         if self.tensorboard_writer:
             tag_name = '%s/%s' % (group_name, series_name)
             if not c_f.is_list_and_has_more_than_one_element(value):
-                if not isinstance(value, datetime.datetime):
+                if all(not isinstance(v, (str, datetime.datetime)) for v in [value, iteration]):
                     self.tensorboard_writer.add_scalar(tag_name, value, iteration)
         if self.record_writer:
             self.record_writer.append(group_name, series_name, value)
@@ -136,10 +136,13 @@ class RecordWriter:
 
     def append(self, group_name, series_name, input_val):
         curr_dict = self.records[group_name]
-        if c_f.is_list_and_has_more_than_one_element(input_val):
-        	c_f.try_append_to_dict(curr_dict, series_name, c_f.convert_to_list(input_val))
+        if isinstance(input_val, str):
+            append_this = input_val
+        elif c_f.is_list_and_has_more_than_one_element(input_val):
+        	append_this = c_f.convert_to_list(input_val)
         else:
-        	c_f.try_append_to_dict(curr_dict, series_name, c_f.convert_to_scalar(input_val))
+        	append_this = c_f.convert_to_scalar(input_val)
+        c_f.try_append_to_dict(curr_dict, series_name, append_this)
 
     def save_records(self):
         for k, v in self.records.items():

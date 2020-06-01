@@ -56,6 +56,8 @@ class DBManager:
                 column_names_list[i] += "_list"
             elif isinstance(curr_value[0], datetime.datetime):
                 curr_type = "%s timestamp"%x
+            elif isinstance(curr_value[0], str):
+                curr_type = "%s text"%x
             else:
                 curr_type = "%s real"%x
             column_values.append(curr_value)
