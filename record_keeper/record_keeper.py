@@ -72,14 +72,16 @@ class RecordKeeper:
             record_name += '_%s' % key_name
         return record_name
 
-    def maybe_add_multi_line_plots_to_tensorboard(self, global_iteration):
-        if self.record_writer and self.tensorboard_writer and self.save_figures:
-            for group_name, dict_of_lists in self.record_writer.records.items():
-                for series_name, v in dict_of_lists.items():
+    def maybe_add_multi_line_plots_to_tensorboard(self):
+        if self.record_writer and self.tensorboard_writer and self.save_figures and self.record_writer.save_lists:
+            for (group_name, series_name) in list(self.record_writer.records_that_are_lists):
+                db_series_name = "{}_list".format(series_name)
+                data = self.query('SELECT {0} FROM {1}'.format(db_series_name, group_name), return_dict=True)
+                for k,v in data.items():
                     if len(v) > 0 and isinstance(v[0], list):
                         tag_name = '%s/%s' % (group_name, series_name)
                         figure = self.multi_line_plot(v)
-                        self.tensorboard_writer.add_figure(tag_name, figure, global_iteration)
+                        self.tensorboard_writer.add_figure(tag_name, figure, len(v))
 
     def multi_line_plot(self, list_of_lists):
         # Each sublist represents a snapshot at an iteration.
@@ -108,6 +110,7 @@ class RecordKeeper:
 
     def save_records(self):
         self.record_writer.save_records()
+        self.maybe_add_multi_line_plots_to_tensorboard()
 
     def query(self, query, *args, **kwargs):
         return self.record_writer.query(query, *args, **kwargs)
@@ -121,6 +124,7 @@ class RecordWriter:
         self.records = self.get_empty_nested_dict()
         self.folder = folder
         self.save_lists = save_lists
+        self.records_that_are_lists = set()
         c_f.makedir_if_not_there(self.folder)
         self.local_db = DBManager(os.path.join(self.folder, "logs.db"), is_global=False)
         self.global_db = None
@@ -139,9 +143,10 @@ class RecordWriter:
         if isinstance(input_val, str):
             append_this = input_val
         elif c_f.is_list_and_has_more_than_one_element(input_val):
-        	append_this = c_f.convert_to_list(input_val)
+            append_this = c_f.convert_to_list(input_val)
+            self.records_that_are_lists.add((group_name, series_name))
         else:
-        	append_this = c_f.convert_to_scalar(input_val)
+            append_this = c_f.convert_to_scalar(input_val)
         c_f.try_append_to_dict(curr_dict, series_name, append_this)
 
     def save_records(self):
