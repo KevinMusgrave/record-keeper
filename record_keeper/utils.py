@@ -87,3 +87,7 @@ def try_append_to_dict(input_dict, key, value):
         input_dict[key].append(value)
     except KeyError:
         input_dict[key] = [value]
+
+
+def unneeded_descriptors():
+    return ["ModuleDict", "ModuleList"]

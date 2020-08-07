@@ -58,7 +58,6 @@ class RecordKeeper:
                     except TypeError:
                         pass
 
-
     def get_attr_list_for_record_keeper(self, input_obj):
         attr_list = []
         for k in self.attributes_to_search_for:
@@ -67,7 +66,11 @@ class RecordKeeper:
         return attr_list
 
     def get_record_name(self, name_in_dict, input_obj, key_name=None):
-        record_name = "%s_%s" % (name_in_dict, type(input_obj).__name__)
+        obj_type = type(input_obj).__name__
+        if obj_type in c_f.unneeded_descriptors():
+            record_name = name_in_dict
+        else:
+            record_name = "%s_%s" % (name_in_dict, obj_type)
         if key_name:
             record_name += '_%s' % key_name
         return record_name
