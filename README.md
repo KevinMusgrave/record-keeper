@@ -42,8 +42,6 @@ record_keeper.update_records(your_loss_dictionary, current_iteration)
 
 Now the attributes described in ```record_these```, (specifically, ```num_non_zero_pos_pairs``` and ```num_non_zero_neg_pairs```) can be viewed on Tensorboard.
 
-![nonzero_pairs_example](https://github.com/KevinMusgrave/powerful-benchmarker/blob/master/readme_imgs/nonzero_pairs_example.png)
-
 These data series are also saved in sqlite and CSV format. If you only want to use Tensorboard, then pass in only a SummaryWriter, and vice versa.
 
 The dictionary that you pass into ```record_keeper.update_records``` can contain any number of objects, and for each one, RecordKeeper will check if the object has a "record_these" attribute. As long as you're making your dictionaries programmatically, it's possible to add large amounts of loggable data without clogging up your training code. See [pytorch-metric-learning](https://github.com/KevinMusgrave/pytorch-metric-learning/) and [powerful-benchmarker](https://github.com/KevinMusgrave/powerful-benchmarker/) to see RecordKeeper in action.  
