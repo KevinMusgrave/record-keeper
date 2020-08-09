@@ -47,13 +47,17 @@ class DBManager:
 
     def write(self, table_name, dict_of_lists, experiment_name=None):
         column_names_list = list(dict_of_lists.keys())
+        for i, x in enumerate(column_names_list):
+            if isinstance(dict_of_lists[x][0], list):
+                column_names_list[i] += "_list"
+            column_names_list[i] = "[{}]".format(column_names_list[i])
+
         column_values, column_types_list = [], []
 
         for i, x in enumerate(column_names_list):
-            curr_value = dict_of_lists[x]
+            curr_value = dict_of_lists[x.replace('[',"").replace(']',"")]
             if isinstance(curr_value[0], list):
                 curr_type = "%s_list json"%x
-                column_names_list[i] += "_list"
             elif isinstance(curr_value[0], datetime.datetime):
                 curr_type = "%s timestamp"%x
             elif isinstance(curr_value[0], str):
@@ -73,7 +77,7 @@ class DBManager:
             experiment_id = (self.get_experiment_id(experiment_name),)*len(column_values[0])
             column_values = [experiment_id]+column_values
 
-        column_tuple = str(tuple(column_tuple)) if len(column_tuple) > 1 else "(%s)"%column_tuple[0]
+        column_tuple = "({})".format(", ".join(str(x) for x in column_tuple))
         prepared_statement_filler = "(%s)"%(("?, "*len(column_values))[:-2])
         column_values = [x for x in zip(*column_values)]
 
