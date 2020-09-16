@@ -20,7 +20,7 @@ class BatchHardMiner(BaseTupleMiner):
         self._record_these = ["hardest_triplet_dist", "hardest_pos_pair_dist", "hardest_neg_pair_dist"]
 ```
 
-Then tell RecordKeeper the name of the list to read. RecordKeeper will log and save all the attributes described in the list.
+Then tell RecordKeeper the name of the list to read. RecordKeeper will log and save all the attributes described in the list. It'll search recursively too, if you have nested objects.
 ```python
 from torch.utils.tensorboard import SummaryWriter
 import record_keeper as record_keeper_package
