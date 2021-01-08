@@ -86,7 +86,7 @@ class DBManager:
         try:
             self.execute("INSERT INTO %s %s VALUES %s"%(table_name, column_tuple, prepared_statement_filler), column_values, many=True)
         except sqlite3.OperationalError:
-            existing_column_names_list = [x['name'] for x in self.execute("PRAGMA table_info(%s)"%table_name, fetch=True)]
+            existing_column_names_list = ["[{}]".format(x['name']) for x in self.execute("PRAGMA table_info(%s)"%table_name, fetch=True)]
             for i, x in enumerate(column_names_list):
                 if x not in existing_column_names_list:
                     self.execute("ALTER TABLE %s ADD COLUMN %s %s"%(table_name, x, column_types_list[i]))
