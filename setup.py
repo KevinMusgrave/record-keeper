@@ -7,7 +7,6 @@ setuptools.setup(
     name="record-keeper",
     version="0.9.30",
     author="Kevin Musgrave",
-    author_email="tkm45@cornell.edu",
     description="Record experiment data easily",
     long_description=long_description,
     long_description_content_type="text/markdown",
