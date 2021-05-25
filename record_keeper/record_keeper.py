@@ -44,6 +44,10 @@ class RecordKeeper:
         if self.record_writer:
             self.record_writer.append(group_name, series_name, value)
 
+    def append_dict(self, group_name, input_obj, global_iteration):
+        for k, v in input_obj.items():
+            self.append_data(group_name, k, v, global_iteration)
+
     def update_records(
         self,
         record_these,
@@ -56,13 +60,18 @@ class RecordKeeper:
             if input_group_name_for_non_objects is not None:
                 group_name = input_group_name_for_non_objects
                 self.append_data(group_name, name_in_dict, input_obj, global_iteration)
+            elif isinstance(input_obj, dict):
+                self.append_dict(name_in_dict, input_obj, global_iteration)
             else:
                 the_obj = c_f.try_getting_dataparallel_module(input_obj)
                 attr_list = self.get_attr_list_for_record_keeper(the_obj)
                 name = self.get_record_name(name_in_dict, the_obj)
                 for k in attr_list:
                     v = getattr(the_obj, k)
-                    self.append_data(name, k, v, global_iteration)
+                    if isinstance(v, dict):
+                        self.append_dict(k, v, global_iteration)
+                    else:
+                        self.append_data(name, k, v, global_iteration)
                 if custom_attr_func is not None:
                     for k, v in custom_attr_func(the_obj).items():
                         self.append_data(name, k, v, global_iteration)
