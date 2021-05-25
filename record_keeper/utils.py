@@ -1,7 +1,9 @@
-from collections.abc import Sized
-import pickle
 import csv
-import os, errno
+import errno
+import os
+import pickle
+from collections.abc import Sized
+
 
 def save_pkl(obj, filename, protocol=None):
     # https://stackoverflow.com/a/19201448
@@ -65,6 +67,7 @@ def try_get_len(v):
         except AttributeError:
             return 0  # not a list
 
+
 def is_list_and_has_more_than_one_element(input_val):
     return isinstance(input_val, Sized) and try_get_len(input_val) > 1
 
@@ -75,12 +78,14 @@ def try_getting_dataparallel_module(input_obj):
     except AttributeError:
         return input_obj
 
+
 def makedir_if_not_there(dir_name):
     try:
         os.makedirs(dir_name)
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+
 
 def try_append_to_dict(input_dict, key, value):
     try:
