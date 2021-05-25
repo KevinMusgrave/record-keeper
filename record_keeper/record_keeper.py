@@ -3,9 +3,6 @@ import datetime
 import glob
 import os
 
-import numpy as np
-from cycler import cycler
-
 from . import utils as c_f
 from .db_utils import DBManager
 
@@ -16,21 +13,12 @@ class RecordKeeper:
         tensorboard_writer=None,
         record_writer=None,
         attributes_to_search_for=None,
-        save_figures=False,
     ):
         self.tensorboard_writer = tensorboard_writer
         self.record_writer = record_writer
         self.attributes_to_search_for = (
             [] if attributes_to_search_for is None else attributes_to_search_for
         )
-        self.save_figures = save_figures
-        if save_figures:
-            import matplotlib
-
-            matplotlib.use("Agg")
-            import matplotlib.pyplot as plt
-
-            self.plt_module = plt
 
     def append_data(self, group_name, series_name, value, iteration):
         if self.tensorboard_writer:
@@ -40,13 +28,11 @@ class RecordKeeper:
                     not isinstance(v, (str, datetime.datetime))
                     for v in [value, iteration]
                 ):
-                    self.tensorboard_writer.add_scalar(tag_name, value, iteration)
+                    self.tensorboard_writer.add_scalar(
+                        tag_name, c_f.convert_to_scalar(value), iteration
+                    )
         if self.record_writer:
             self.record_writer.append(group_name, series_name, value)
-
-    def append_dict(self, group_name, input_obj, global_iteration):
-        for k, v in input_obj.items():
-            self.append_data(group_name, k, v, global_iteration)
 
     def update_records(
         self,
@@ -56,12 +42,25 @@ class RecordKeeper:
         input_group_name_for_non_objects=None,
         recursive_types=None,
     ):
+        kwargs = {
+            "global_iteration": global_iteration,
+            "custom_attr_func": custom_attr_func,
+            "input_group_name_for_non_objects": input_group_name_for_non_objects,
+            "recursive_types": recursive_types,
+        }
         for name_in_dict, input_obj in record_these.items():
-            if input_group_name_for_non_objects is not None:
-                group_name = input_group_name_for_non_objects
+            if c_f.is_primitive(input_obj):
+                group_name = (
+                    input_group_name_for_non_objects
+                    if input_group_name_for_non_objects is not None
+                    else name_in_dict
+                )
                 self.append_data(group_name, name_in_dict, input_obj, global_iteration)
             elif isinstance(input_obj, dict):
-                self.append_dict(name_in_dict, input_obj, global_iteration)
+                next_record_these = {
+                    "%s_%s" % (name_in_dict, k): v for k, v in input_obj.items()
+                }
+                self.update_records(next_record_these, **kwargs)
             else:
                 the_obj = c_f.try_getting_dataparallel_module(input_obj)
                 attr_list = self.get_attr_list_for_record_keeper(the_obj)
@@ -69,32 +68,20 @@ class RecordKeeper:
                 for k in attr_list:
                     v = getattr(the_obj, k)
                     if isinstance(v, dict):
-                        self.append_dict(k, v, global_iteration)
+                        next_record_these = {
+                            "%s_%s_%s" % (name, k, k2): v for k2, v in v.items()
+                        }
+                        self.update_records(next_record_these, **kwargs)
                     else:
                         self.append_data(name, k, v, global_iteration)
                 if custom_attr_func is not None:
                     for k, v in custom_attr_func(the_obj).items():
                         self.append_data(name, k, v, global_iteration)
                 if recursive_types is not None:
-                    try:
-                        for attr_name, attr in vars(input_obj).items():
-                            next_record_these = None
-                            if isinstance(attr, dict):
-                                next_record_these = {
-                                    "%s_%s" % (name, k): v for k, v in attr.items()
-                                }
-                            elif any(isinstance(attr, rt) for rt in recursive_types):
-                                next_record_these = {"%s_%s" % (name, attr_name): attr}
-                            if next_record_these:
-                                self.update_records(
-                                    next_record_these,
-                                    global_iteration,
-                                    custom_attr_func,
-                                    input_group_name_for_non_objects,
-                                    recursive_types,
-                                )
-                    except TypeError:
-                        pass
+                    for attr_name, attr in vars(input_obj).items():
+                        if any(isinstance(attr, rt) for rt in recursive_types):
+                            next_record_these = {"%s_%s" % (name, attr_name): attr}
+                            self.update_records(next_record_these, **kwargs)
 
     def get_attr_list_for_record_keeper(self, input_obj):
         attr_list = []
@@ -113,65 +100,11 @@ class RecordKeeper:
             record_name += "_%s" % key_name
         return record_name
 
-    def maybe_add_multi_line_plots_to_tensorboard(self):
-        if (
-            self.record_writer
-            and self.tensorboard_writer
-            and self.save_figures
-            and self.record_writer.save_lists
-        ):
-            for (group_name, series_name) in list(
-                self.record_writer.records_that_are_lists
-            ):
-                db_series_name = "{}_list".format(series_name)
-                data = self.query(
-                    "SELECT {0} FROM {1}".format(db_series_name, group_name),
-                    return_dict=True,
-                )
-                for k, v in data.items():
-                    if len(v) > 0 and isinstance(v[0], list):
-                        tag_name = "%s/%s" % (group_name, series_name)
-                        figure = self.multi_line_plot(v)
-                        self.tensorboard_writer.add_figure(tag_name, figure, len(v))
-
-    def multi_line_plot(self, list_of_lists):
-        # Each sublist represents a snapshot at an iteration.
-        # Transpose so that each row covers many iterations.
-        numpified = np.transpose(np.array(list_of_lists))
-        fig = self.plt_module.figure()
-        for sublist in numpified:
-            self.plt_module.plot(np.arange(numpified.shape[1]), sublist)
-        return fig
-
-    def add_embedding_plot(self, embeddings, labels, tag, global_iteration):
-        # The pytorch tensorboard function "add_embedding" doesn't seem to work
-        # So this will have to do for now
-        if self.tensorboard_writer and self.save_figures:
-            label_set = np.unique(labels)
-            num_classes = len(label_set)
-            fig = self.plt_module.figure()
-            self.plt_module.gca().set_prop_cycle(
-                cycler(
-                    "color",
-                    [
-                        self.plt_module.cm.nipy_spectral(i)
-                        for i in np.linspace(0, 0.9, num_classes)
-                    ],
-                )
-            )
-            for i in range(num_classes):
-                idx = labels == label_set[i]
-                self.plt_module.plot(
-                    embeddings[idx, 0], embeddings[idx, 1], ".", markersize=1
-                )
-            self.tensorboard_writer.add_figure(tag, fig, global_iteration)
-
     def get_record(self, group_name):
         return self.record_writer.records[group_name]
 
     def save_records(self):
         self.record_writer.save_records()
-        self.maybe_add_multi_line_plots_to_tensorboard()
 
     def query(self, query, *args, **kwargs):
         return self.record_writer.query(query, *args, **kwargs)

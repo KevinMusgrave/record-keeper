@@ -4,6 +4,9 @@ import os
 import pickle
 from collections.abc import Sized
 
+import numpy as np
+import torch
+
 
 def save_pkl(obj, filename, protocol=None):
     # https://stackoverflow.com/a/19201448
@@ -96,3 +99,7 @@ def try_append_to_dict(input_dict, key, value):
 
 def unneeded_descriptors():
     return ["ModuleDict", "ModuleList"]
+
+
+def is_primitive(x):
+    return isinstance(x, (int, float, str, bool, list, np.ndarray, torch.Tensor))
