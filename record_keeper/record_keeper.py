@@ -23,7 +23,9 @@ class RecordKeeper:
     def append_data(self, group_name, series_name, value, iteration):
         if self.tensorboard_writer:
             tag_name = "%s/%s" % (group_name, series_name)
-            if not c_f.is_list_and_has_more_than_one_element(value):
+            if (value is not None) and (
+                not c_f.is_list_and_has_more_than_one_element(value)
+            ):
                 if all(
                     not isinstance(v, (str, datetime.datetime))
                     for v in [value, iteration]
