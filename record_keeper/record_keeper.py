@@ -36,33 +36,56 @@ class RecordKeeper:
         if self.record_writer:
             self.record_writer.append(group_name, series_name, value)
 
+    def append_primitive(
+        self, group, series, value, global_iteration, custom_group_name
+    ):
+        if group is None and custom_group_name is None:
+            raise ValueError("group and custom_group_name cannot both be None")
+        if group is None:
+            group = custom_group_name
+        elif custom_group_name is not None:
+            group = f"{custom_group_name}_{group}"
+        self.append_data(group, series, value, global_iteration)
+
+    def append_dict(
+        self, group, input_obj, global_iteration, custom_group_name, kwargs
+    ):
+        next_dict = {}
+        for k, v in input_obj.items():
+            if c_f.is_primitive(v):
+                self.append_primitive(group, k, v, global_iteration, custom_group_name)
+            else:
+                next_dict[k] = v
+        next_record_these = {"%s_%s" % (group, k): v for k, v in next_dict.items()}
+        self.update_records(next_record_these, **kwargs)
+
     def update_records(
         self,
         record_these,
         global_iteration,
         custom_attr_func=None,
-        input_group_name_for_non_objects=None,
+        custom_group_name=None,
         recursive_types=None,
     ):
         kwargs = {
             "global_iteration": global_iteration,
             "custom_attr_func": custom_attr_func,
-            "input_group_name_for_non_objects": input_group_name_for_non_objects,
+            "custom_group_name": custom_group_name,
             "recursive_types": recursive_types,
         }
         for name_in_dict, input_obj in record_these.items():
             if c_f.is_primitive(input_obj):
-                group_name = (
-                    input_group_name_for_non_objects
-                    if input_group_name_for_non_objects is not None
-                    else name_in_dict
+                self.append_primitive(
+                    None,
+                    name_in_dict,
+                    input_obj,
+                    global_iteration,
+                    custom_group_name,
                 )
-                self.append_data(group_name, name_in_dict, input_obj, global_iteration)
             elif isinstance(input_obj, dict):
-                next_record_these = {
-                    "%s_%s" % (name_in_dict, k): v for k, v in input_obj.items()
-                }
-                self.update_records(next_record_these, **kwargs)
+                self.append_dict(
+                    name_in_dict, input_obj, global_iteration, custom_group_name, kwargs
+                )
             else:
                 the_obj = c_f.try_getting_dataparallel_module(input_obj)
                 attr_list = self.get_attr_list_for_record_keeper(the_obj)
@@ -70,15 +93,22 @@ class RecordKeeper:
                 for k in attr_list:
                     v = getattr(the_obj, k)
                     if isinstance(v, dict):
-                        next_record_these = {
-                            "%s_%s_%s" % (name, k, k2): v for k2, v in v.items()
-                        }
-                        self.update_records(next_record_these, **kwargs)
+                        self.append_dict(
+                            f"{name}_{k}",
+                            v,
+                            global_iteration,
+                            custom_group_name,
+                            kwargs,
+                        )
                     else:
-                        self.append_data(name, k, v, global_iteration)
+                        self.append_primitive(
+                            name, k, v, global_iteration, custom_group_name
+                        )
                 if custom_attr_func is not None:
                     for k, v in custom_attr_func(the_obj).items():
-                        self.append_data(name, k, v, global_iteration)
+                        self.append_primitive(
+                            name, k, v, global_iteration, custom_group_name
+                        )
                 if recursive_types is not None:
                     for attr_name, attr in vars(input_obj).items():
                         if any(isinstance(attr, rt) for rt in recursive_types):
