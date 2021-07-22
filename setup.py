@@ -1,3 +1,5 @@
+import sys
+
 import setuptools
 
 sys.path.insert(0, "src")
