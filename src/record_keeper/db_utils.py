@@ -2,8 +2,6 @@ import datetime
 import json
 import sqlite3
 
-import numpy as np
-
 
 def adapt_list_to_JSON(lst):
     return json.dumps(lst).encode("utf8")
