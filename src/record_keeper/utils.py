@@ -2,6 +2,7 @@ import csv
 import errno
 import os
 import pickle
+from collections import defaultdict
 from collections.abc import Sized
 
 import numpy as np
@@ -46,7 +47,10 @@ def convert_to_scalar(v):
         return v.detach().item()  # pytorch
     except AttributeError:
         try:
-            return v[0]  # list or numpy
+            output = v[0]  # list or numpy
+            if isinstance(output, (np.int32, np.int64)):
+                output = int(output)
+            return output
         except (TypeError, IndexError):
             return v  # already a scalar
 
@@ -90,11 +94,11 @@ def makedir_if_not_there(dir_name):
             raise
 
 
-def try_append_to_dict(input_dict, key, value):
+def try_add_to_dict(input_dict, key, value, iteration):
     try:
-        input_dict[key].append(value)
+        input_dict[key][iteration] = value
     except KeyError:
-        input_dict[key] = [value]
+        input_dict[key] = {iteration: value}
 
 
 def unneeded_descriptors():
@@ -103,3 +107,20 @@ def unneeded_descriptors():
 
 def is_primitive(x):
     return isinstance(x, (int, float, str, bool, list, np.ndarray, torch.Tensor))
+
+
+def separate_iterations_from_series(records):
+    all_iterations = set()
+
+    for series_name, series in records.items():
+        all_iterations.update(series.keys())
+
+    all_iterations = sorted(list(all_iterations))
+
+    output = {"~iteration~": all_iterations}
+    for series_name, series in records.items():
+        output[series_name] = []
+        for i in all_iterations:
+            output[series_name].append(series.get(i, None))
+
+    return output

@@ -34,7 +34,7 @@ class RecordKeeper:
                         tag_name, c_f.convert_to_scalar(value), iteration
                     )
         if self.record_writer:
-            self.record_writer.append(group_name, series_name, value)
+            self.record_writer.append(group_name, series_name, value, iteration)
 
     def append_primitive(
         self, group, series, value, global_iteration, custom_group_name
@@ -171,7 +171,7 @@ class RecordWriter:
     def get_empty_nested_dict(self):
         return collections.defaultdict(lambda: collections.OrderedDict())
 
-    def append(self, group_name, series_name, input_val):
+    def append(self, group_name, series_name, input_val, iteration):
         curr_dict = self.records[group_name]
         if isinstance(input_val, str):
             append_this = input_val
@@ -180,11 +180,12 @@ class RecordWriter:
             self.records_that_are_lists.add((group_name, series_name))
         else:
             append_this = c_f.convert_to_scalar(input_val)
-        c_f.try_append_to_dict(curr_dict, series_name, append_this)
+        c_f.try_add_to_dict(curr_dict, series_name, append_this, iteration)
 
     def save_records(self):
         for k, v in self.records.items():
             if len(v) > 0:
+                v = c_f.separate_iterations_from_series(v)
                 len_of_list = len(v[sorted(list(v.keys()))[0]])  # get random sub list
                 assert all(
                     len(v[sub_key]) == len_of_list for sub_key in v.keys()

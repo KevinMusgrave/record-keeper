@@ -2,6 +2,8 @@ import datetime
 import json
 import sqlite3
 
+import numpy as np
+
 
 def adapt_list_to_JSON(lst):
     return json.dumps(lst).encode("utf8")
@@ -75,6 +77,8 @@ class DBManager:
                 curr_type = "%s timestamp" % x
             elif isinstance(curr_value[0], str):
                 curr_type = "%s text" % x
+            elif isinstance(curr_value[0], int):
+                curr_type = "%s integer" % x
             else:
                 curr_type = "%s real" % x
             column_values.append(curr_value)

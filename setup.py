@@ -1,5 +1,6 @@
 import setuptools
 
+sys.path.insert(0, "src")
 import record_keeper
 
 with open("README.md", "r") as fh:
@@ -13,7 +14,8 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/KevinMusgrave/record-keeper",
-    packages=setuptools.find_packages(include=["record_keeper"]),
+    package_dir={"": "src"},
+    packages=setuptools.find_packages(where="src"),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
