@@ -1,5 +1,6 @@
 import csv
 import errno
+import hashlib
 import os
 import pickle
 from collections import defaultdict
@@ -124,3 +125,18 @@ def separate_iterations_from_series(records):
             output[series_name].append(series.get(i, None))
 
     return output
+
+
+def hash_if_too_long(x):
+    if len(x) < 33:
+        return x
+    y = x.split("_")[-1]
+    x = "_".join(x)
+    h = f"h{hashlib.md5(x.encode('utf-8')).hexdigest()}"
+    return f"{h}_{y}"
+
+
+def next_parent_name(parent_name, name):
+    if parent_name != "":
+        return f"{parent_name}_{name}"
+    return name

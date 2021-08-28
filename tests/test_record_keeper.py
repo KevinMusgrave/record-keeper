@@ -36,9 +36,9 @@ class TestRecordKeeper(unittest.TestCase):
                 record = {"A": 500, "C": float("inf")}
             if i == 9:
                 record["F"] = {"goodbye": "Monday"}
-            record_keeper.update_records(record, i, custom_group_name="stuff")
+            record_keeper.update_records(record, i, parent_name="stuff")
 
-        record_keeper.update_records({"E": "new column"}, 11, custom_group_name="stuff")
+        record_keeper.update_records({"E": "new column"}, 11, parent_name="stuff")
         record_keeper.save_records()
         record_keeper.tensorboard_writer.flush()
 

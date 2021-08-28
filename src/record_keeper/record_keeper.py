@@ -36,84 +36,65 @@ class RecordKeeper:
         if self.record_writer:
             self.record_writer.append(group_name, series_name, value, iteration)
 
-    def append_primitive(
-        self, group, series, value, global_iteration, custom_group_name
-    ):
-        if group is None and custom_group_name is None:
-            raise ValueError("group and custom_group_name cannot both be None")
-        if group is None:
-            group = custom_group_name
-        elif custom_group_name is not None:
-            group = f"{custom_group_name}_{group}"
+    def append_primitive(self, group, series, value, global_iteration):
+        if group == "":
+            raise ValueError("group cannot be an empty string")
+        group = c_f.hash_if_too_long(group)
         self.append_data(group, series, value, global_iteration)
-
-    def append_dict(
-        self, group, input_obj, global_iteration, custom_group_name, kwargs
-    ):
-        next_dict = {}
-        for k, v in input_obj.items():
-            if c_f.is_primitive(v):
-                self.append_primitive(group, k, v, global_iteration, custom_group_name)
-            else:
-                next_dict[k] = v
-        next_record_these = {"%s_%s" % (group, k): v for k, v in next_dict.items()}
-        self.update_records(next_record_these, **kwargs)
 
     def update_records(
         self,
         record_these,
         global_iteration,
         custom_attr_func=None,
-        custom_group_name=None,
+        parent_name="",
         recursive_types=None,
     ):
         kwargs = {
             "global_iteration": global_iteration,
             "custom_attr_func": custom_attr_func,
-            "custom_group_name": custom_group_name,
             "recursive_types": recursive_types,
         }
+
         for name_in_dict, input_obj in record_these.items():
             if c_f.is_primitive(input_obj):
                 self.append_primitive(
-                    None,
+                    parent_name,
                     name_in_dict,
                     input_obj,
                     global_iteration,
-                    custom_group_name,
                 )
             elif isinstance(input_obj, dict):
-                self.append_dict(
-                    name_in_dict, input_obj, global_iteration, custom_group_name, kwargs
-                )
+                next_parent_name = c_f.next_parent_name(parent_name, name_in_dict)
+                self.update_records(input_obj, parent_name=next_parent_name, **kwargs)
             else:
                 the_obj = c_f.try_getting_dataparallel_module(input_obj)
                 attr_list = self.get_attr_list_for_record_keeper(the_obj)
                 name = self.get_record_name(name_in_dict, the_obj)
-                for k in attr_list:
-                    v = getattr(the_obj, k)
-                    if isinstance(v, dict):
-                        self.append_dict(
-                            f"{name}_{k}",
-                            v,
-                            global_iteration,
-                            custom_group_name,
-                            kwargs,
-                        )
-                    else:
-                        self.append_primitive(
-                            name, k, v, global_iteration, custom_group_name
-                        )
+                next_record_these = {f"{k}": getattr(the_obj, k) for k in attr_list}
+                next_parent_name = c_f.next_parent_name(parent_name, name)
+                self.update_records(
+                    next_record_these, parent_name=next_parent_name, **kwargs
+                )
                 if custom_attr_func is not None:
-                    for k, v in custom_attr_func(the_obj).items():
-                        self.append_primitive(
-                            name, k, v, global_iteration, custom_group_name
-                        )
+                    self.update_records(
+                        custom_attr_func(the_obj),
+                        parent_name=next_parent_name,
+                        **kwargs,
+                    )
                 if recursive_types is not None:
                     for attr_name, attr in vars(input_obj).items():
                         if any(isinstance(attr, rt) for rt in recursive_types):
-                            next_record_these = {"%s_%s" % (name, attr_name): attr}
+                            next_record_these = {f"{name}_{attr_name}": attr}
                             self.update_records(next_record_these, **kwargs)
+                        elif isinstance(attr, (list, tuple)):
+                            if any(
+                                all(isinstance(aaa, rt) for aaa in attr)
+                                for rt in recursive_types
+                            ):
+                                for i, aaa in enumerate(attr):
+                                    next_record_these = {f"{name}_{attr_name}{i}": aaa}
+                                    self.update_records(next_record_these, **kwargs)
 
     def get_attr_list_for_record_keeper(self, input_obj):
         attr_list = []
