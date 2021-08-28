@@ -19,6 +19,7 @@ class RecordKeeper:
         self.attributes_to_search_for = (
             [] if attributes_to_search_for is None else attributes_to_search_for
         )
+        self.hash_map = {}
 
     def append_data(self, group_name, series_name, value, iteration):
         if self.tensorboard_writer:
@@ -39,8 +40,10 @@ class RecordKeeper:
     def append_primitive(self, group, series, value, global_iteration):
         if group == "":
             raise ValueError("group cannot be an empty string")
-        group = c_f.hash_if_too_long(group)
-        self.append_data(group, series, value, global_iteration)
+        new_group = c_f.hash_if_too_long(group)
+        if new_group != group:
+            self.hash_map[new_group] = group
+        self.append_data(new_group, series, value, global_iteration)
 
     def update_records(
         self,
@@ -118,6 +121,10 @@ class RecordKeeper:
 
     def save_records(self):
         self.record_writer.save_records()
+        if len(self.hash_map) > 0:
+            c_f.write_dict_to_json(
+                self.hash_map, os.path.join(self.record_writer.folder, "hash_map.json")
+            )
 
     def query(self, query, *args, **kwargs):
         return self.record_writer.query(query, *args, **kwargs)

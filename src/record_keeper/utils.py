@@ -1,6 +1,7 @@
 import csv
 import errno
 import hashlib
+import json
 import os
 import pickle
 from collections import defaultdict
@@ -41,6 +42,12 @@ def write_dict_of_lists_to_csv(obj, filename, append=False):
         if write_header:
             writer.writerow(obj.keys())
         writer.writerows(zip(*obj.values()))
+
+
+# https://stackoverflow.com/a/8685873
+def write_dict_to_json(obj, filename):
+    with open(filename, "w") as f:
+        json.dump(obj, f, indent=2)
 
 
 def convert_to_scalar(v):
@@ -130,10 +137,12 @@ def separate_iterations_from_series(records):
 def hash_if_too_long(x):
     if len(x) < 33:
         return x
-    y = x.split("_")[-1]
-    x = "_".join(x)
+    y = x.split("_")
+    start = y.pop(0)
+    end = y.pop(-1)
+    x = "_".join(y)
     h = f"h{hashlib.md5(x.encode('utf-8')).hexdigest()}"
-    return f"{h}_{y}"
+    return f"{start}_{h}_{end}"
 
 
 def next_parent_name(parent_name, name):
