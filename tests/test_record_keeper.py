@@ -30,9 +30,12 @@ class TestRecordKeeper(unittest.TestCase):
                     "B": 10 - np.array([i * 2]),
                     "C": torch.tensor(i * 1.25),
                     "D": "hello",
+                    "F": {"goodbye": "Sunday"},
                 }
             else:
                 record = {"A": 500, "C": float("inf")}
+            if i == 9:
+                record["F"] = {"goodbye": "Monday"}
             record_keeper.update_records(record, i, custom_group_name="stuff")
 
         record_keeper.update_records({"E": "new column"}, 11, custom_group_name="stuff")
@@ -58,5 +61,10 @@ class TestRecordKeeper(unittest.TestCase):
         result = record_keeper.query("SELECT E from stuff", return_dict=True)
         correct = [None] * 10 + ["new column"]
         self.assertTrue(result["E"] == correct)
+
+        result = record_keeper.query("SELECT * from stuff_F", return_dict=True)
+        correct = ["Sunday"] * 5 + ["Monday"]
+        self.assertTrue(result["goodbye"] == correct)
+        self.assertTrue(result["~iteration~"] == [0, 1, 2, 3, 4, 9])
 
         shutil.rmtree(FOLDER)
