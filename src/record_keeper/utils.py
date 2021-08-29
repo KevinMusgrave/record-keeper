@@ -137,13 +137,15 @@ def separate_iterations_from_series(records):
 
 
 def hash_if_too_long(x):
-    if len(x) < 33:
-        return x
     y = x.split("_")
+    if len(y) <= 2:
+        return x
     start = y.pop(0)
     end = y.pop(-1)
-    x = "_".join(y)
-    h = f"h{hashlib.md5(x.encode('utf-8')).hexdigest()}"
+    new_x = "_".join(y)
+    if len(new_x) <= 64:
+        return x
+    h = f"{hashlib.sha256(new_x.encode('utf-8')).hexdigest()}"
     return f"{start}_{h}_{end}"
 
 
