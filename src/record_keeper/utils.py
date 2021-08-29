@@ -114,7 +114,9 @@ def unneeded_descriptors():
 
 
 def is_primitive(x):
-    return isinstance(x, (int, float, str, bool, list, np.ndarray, torch.Tensor))
+    return isinstance(
+        x, (int, float, str, bool, list, np.int32, np.int64, np.ndarray, torch.Tensor)
+    )
 
 
 def separate_iterations_from_series(records):
