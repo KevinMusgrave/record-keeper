@@ -34,8 +34,8 @@ def write_dict_of_lists_to_csv(obj, filename, append=False):
                 reader = csv.reader(f)
                 all_header_rows = list(reader)
                 for row in all_header_rows[::-1]:
-                    if len(row) > 0 and row == list(obj.keys()):
-                        write_header = False
+                    if len(row) > 0 and row[0] == "~iteration~":
+                        write_header = row != list(obj.keys())
                         break
 
     # https://stackoverflow.com/a/23613603
