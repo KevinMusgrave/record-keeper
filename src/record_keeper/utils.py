@@ -32,9 +32,11 @@ def write_dict_of_lists_to_csv(obj, filename, append=False):
         if os.path.isfile(filename):
             with open(filename, "r") as f:
                 reader = csv.reader(f)
-                header = next(reader)
-                if len(header) > 0 and header == list(obj.keys()):
-                    write_header = False
+                all_header_rows = list(reader)
+                for row in all_header_rows[::-1]:
+                    if len(row) > 0 and row == list(obj.keys()):
+                        write_header = False
+                        break
 
     # https://stackoverflow.com/a/23613603
     with open(filename, open_as) as outfile:
