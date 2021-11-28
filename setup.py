@@ -24,5 +24,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.0",
-    install_requires=["numpy", "matplotlib"],
+    install_requires=["numpy", "torch"],
 )
