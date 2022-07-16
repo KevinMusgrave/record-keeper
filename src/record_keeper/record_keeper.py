@@ -1,6 +1,5 @@
 import collections
 import datetime
-import glob
 import os
 
 from . import utils as c_f
@@ -60,7 +59,9 @@ class RecordKeeper:
         }
 
         for name_in_dict, input_obj in record_these.items():
-            if c_f.is_primitive(input_obj):
+            if input_obj is None:
+                continue
+            elif c_f.is_primitive(input_obj):
                 self.append_primitive(
                     parent_name,
                     name_in_dict,

@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import pickle
-from collections import defaultdict
 from collections.abc import Sized
 
 import numpy as np

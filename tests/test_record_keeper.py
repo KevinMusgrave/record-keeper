@@ -1,4 +1,3 @@
-import os
 import shutil
 import unittest
 
@@ -68,3 +67,13 @@ class TestRecordKeeper(unittest.TestCase):
         self.assertTrue(result["~iteration~"] == [0, 1, 2, 3, 4, 9])
 
         shutil.rmtree(FOLDER)
+
+    def test_no_dict_attribute(self):
+        x = torch.nn.CrossEntropyLoss()
+        record_keeper = RecordKeeper(
+            record_writer=RecordWriter(folder=FOLDER),
+            attributes_to_search_for=["_record_these"],
+        )
+        record_keeper.update_records(
+            {"loss_fn": x}, 0, recursive_types=[torch.nn.Module, dict]
+        )
